@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mandir Mitra App - Digital Pass & Crowd Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Base Styles and Custom Font */
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1f2937;
+            min-height: 100vh;
+            /* Background Image and Animation */
+            /* Using a more thematic placeholder for devotional look */
+            background: url('https://placehold.co/1920x1080/4F46E5/FFFFFF/png?text=Dwarka+Temple+Entrance') no-repeat center center fixed;
+            background-size: cover;
+            animation: backgroundZoom 30s infinite alternate; /* Subtle zoom effect */
+            overflow-y: auto; /* Allow scrolling for content longer than viewport */
+        }
+
+        /* Background Zoom Animation */
+        @keyframes backgroundZoom {
+            from {
+                background-size: 110% 110%;
+            }
+            to {
+                background-size: 100% 100%;
+            }
+        }
+
+        /* Overlay for Readability */
+        #appContainer {
+            background-color: rgba(243, 244, 246, 0.9); /* Slightly less opaque for better devotional feel */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Page Transitions */
+        .page {
+            display: none;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            padding: 2rem 0;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            min-height: 80vh; 
+        }
+
+        .page.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Custom Card Styles (PROFESSIONAL/DEVOTIONAL UPDATE) */
+        .flashcard-container {
+            /* Disable flip perspective container for simpler button-at-bottom look */
+            perspective: none; 
+        }
+
+        .flashcard {
+            /* Removed 3D transforms, keeping smooth hover transition */
+            transform-style: flat;
+            transition: box-shadow 0.3s, transform 0.3s;
+            position: relative;
+            cursor: pointer;
+            width: 100%;
+            min-height: 12rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); /* Softer shadow */
+            background-color: white; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            padding-bottom: 0; /* Button area handles the bottom padding */
+        }
+        .flashcard:hover {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px); /* Slight lift on hover */
+        }
+
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            width: 100%;
+            text-align: center;
+            padding-top: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #5d50ff; /* Devotional accent color */
+        }
+
+        .card-button-area {
+            width: 100%;
+            padding: 1rem 0;
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .card-button-area button, .card-button-area a {
+            min-width: 60%;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px; /* Pill button style */
+            font-weight: 700;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+        .card-button-area button:hover, .card-button-area a:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Message Box */
+        .message-box {
+            position: fixed;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #10b981;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 200;
+            display: none;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .message-box.show {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none; /* Controlled by JS */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border-radius: 1.5rem;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Calendar specific styles for Booking Page (Inherited from original) */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+        .calendar-day {
+            padding: 0.5rem 0.2rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-weight: 500;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 4rem;
+            border: 1px solid #e5e7eb;
+        }
+        .calendar-day.available {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .calendar-day.selected {
+            background-color: #10b981;
+            color: white;
+            transform: scale(1.05);
+            border: 2px solid #059669;
+        }
+        .slot-count {
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* --- CHATBOT STYLES --- */
+        #chatbot-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 50%;
+            background-color: #4F46E5; /* Indigo-600 */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        #chatbot-button:hover {
+            background-color: #4338CA; /* Indigo-700 */
+            transform: scale(1.05);
+        }
+        #chat-window {
+            position: fixed;
+            bottom: 7rem;
+            right: 2rem;
+            width: 90%;
+            max-width: 350px;
+            height: 450px;
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            z-index: 999;
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #chat-window.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .chat-message {
+            max-width: 80%;
+            padding: 0.75rem;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #E0E7FF; /* Indigo-100 */
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+            color: #1F2937;
+        }
+        .ai-message {
+            background-color: #4F46E5; /* Indigo-600 */
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+            color: white;
+        }
+        .ai-message a {
+            color: #DBEAFE; /* Blue-100 for links in AI messages */
+            text-decoration: underline;
+        }
+        /* End Chatbot Styles */
+    </style>
+</head>
+<body>
+
+    <div id="appContainer">
+
+        <div id="messageBox" class="message-box"></div>
+
+        <div id="page1" class="page active flex-col w-full max-w-lg mx-auto p-8 bg-white rounded-3xl shadow-2xl space-y-6">
+            <h2 class="text-2xl font-extrabold text-center text-indigo-700">Welcome to Mandir Mitra</h2>
+            
+            <button onclick="showMessage('User Login Clicked'); showPage('page2');" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-extrabold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-[1.01]">User Login</button>
+            
+            <button onclick="showStaffLoginPage();" class="w-full bg-gray-700 text-white py-3 rounded-xl font-extrabold hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl transform hover:scale-[1.01]">Temple Staff Login</button>
+            
+            <button onclick="showMessage('New User Registration Clicked');" class="w-full bg-indigo-200 text-indigo-800 py-3 rounded-xl font-semibold hover:bg-indigo-300 transition-colors">New User Registration</button>
+        </div>
+        
+        <div id="staffLogin" class="page flex-col w-full max-w-lg mx-auto p-8 bg-white rounded-3xl shadow-2xl space-y-6">
+            <button onclick="showPage('page1');" class="self-start mb-4 bg-gray-300 text-gray-700 py-1 px-4 rounded-full text-sm hover:bg-gray-400">← Back to Main</button>
+            <h2 class="text-2xl font-bold text-center text-red-700">Staff Access Portal</h2>
+            
+            <label for="staffRole" class="block text-lg font-medium text-gray-700">Select Your Role</label>
+            <select id="staffRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring focus:ring-red-200 focus:ring-opacity-50 text-center py-3 text-lg font-semibold">
+                <option value="">-- Choose Role --</option>
+                <option value="Manager">Manager (Full Control)</option>
+                <option value="Security">Security / Volunteer</option>
+                <option value="Medical">Medical Staff</option>
+            </select>
+
+            <div id="staffAuth" class="space-y-4">
+                <label class="block">
+                    <span class="text-gray-700">Username (Any)</span>
+                    <input type="text" id="staffUsername" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring focus:ring-red-200 focus:ring-opacity-50">
+                </label>
+                <label class="block">
+                    <span class="text-gray-700">Password (Any)</span>
+                    <input type="password" id="staffPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring focus:ring-red-200 focus:ring-opacity-50">
+                </label>
+            </div>
+
+            <button onclick="authenticateStaff();" class="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors shadow-lg">Login to Command Center</button>
+        </div>
+
+        <div id="page2" class="page flex-col w-full max-w-6xl mx-auto p-8 bg-white rounded-3xl shadow-2xl">
+            <header class="w-full mx-auto py-6">
+                <div class="flex items-center justify-between flex-wrap">
+                    <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                        <svg class="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m-8-4v10"></path></svg>
+                        <h1 class="text-3xl font-extrabold text-indigo-800">Mandir Mitra App</h1>
+                    </div>
+                    <div class="flex items-center space-x-4 flex-wrap">
+                        <div class="relative hidden sm:block">
+                            <input type="text" id="searchInput" class="w-64 pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" placeholder="Search temple features or services...">
+                            <button id="searchButton" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <button onclick="showOperationsDashboard();" class="bg-red-500 text-white py-2 px-4 rounded-full text-sm font-semibold hover:bg-red-600 transition-colors">Staff Command Center</button>
+                        <select id="languageSelect" class="bg-white border border-gray-300 text-gray-900 rounded-full px-4 py-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="en">English</option>
+                            <option value="hi">Hindi</option>
+                        </select>
+                    </div>
+                </div>
+            </header>
+
+            <h2 class="text-2xl font-extrabold mb-6 text-gray-700">Welcome to Dwarka Temple</h2>
+
+            <div id="flashcardGrid" class="flashcard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <div class="flashcard-container" data-card-id="1">
+                    <div id="flashcard-1" class="flashcard bg-yellow-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-yellow-900">Digital Pass Booking</span>
+                            <p class="text-sm text-yellow-800/80 mt-1">Book your Darshan entry slot.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button id="bookNowBtn" class="bg-indigo-600 text-white" onclick="showBookingCalendar();">Book Now</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="2">
+                    <div id="flashcard-2" class="flashcard bg-green-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-green-900">Real-time Crowd Prediction</span>
+                            <p class="text-sm text-green-800/80 mt-1">Check live status to avoid heavy rush.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showCrowdPredictionPage();">Check Live Status</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="3">
+                    <div id="flashcard-3" class="flashcard bg-red-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-red-900">Temple Timings & Waiting Time</span>
+                            <p class="text-sm text-red-800/80 mt-1">Get up-to-date timings and estimated queue length.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(3);">Check Details</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="7">
+                    <div id="flashcard-7" class="flashcard bg-teal-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-teal-900">PwD Services</span>
+                            <p class="text-sm text-teal-800/80 mt-1">Priority access and accessible routes.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(7);">Priority Access</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flashcard-container" data-card-id="13">
+                    <div id="flashcard-13" class="flashcard bg-purple-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-purple-900">Live Aarti Broadcast</span>
+                            <p class="text-sm text-purple-800/80 mt-1">Experience the temple rituals live.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(13);">Watch Live</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="14">
+                    <div id="flashcard-14" class="flashcard bg-yellow-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-yellow-900">Sewa & Donations</span>
+                            <p class="text-sm text-yellow-800/80 mt-1">Contribute to the temple's service.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(14);">Donate Now</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="8">
+                    <div id="flashcard-8" class="flashcard bg-indigo-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-indigo-900">Prasadam / Food Token</span>
+                            <p class="text-sm text-indigo-800/80 mt-1">Receive a token for complimentary Prasadam.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(8);">Food Token</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="9">
+                    <div id="flashcard-9" class="flashcard bg-lime-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-lime-900">History & Significance</span>
+                            <p class="text-sm text-lime-800/80 mt-1">Learn about the temple's rich spiritual past.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(9);">History & Significance</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="10">
+                    <div id="flashcard-10" class="flashcard bg-cyan-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-cyan-900">360° Temple View</span>
+                            <p class="text-sm text-cyan-800/80 mt-1">Take a virtual tour of the premises.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(10);">360° Temple View</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="11">
+                    <div id="flashcard-11" class="flashcard bg-gray-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-gray-900">Traffic & Mobility Management</span>
+                            <p class="text-sm text-gray-800/80 mt-1">Parking and shuttle service info.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(11);">Traffic & Mobility Management</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="12">
+                    <div id="flashcard-12" class="flashcard bg-blue-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-blue-900">My User ID</span>
+                            <p class="text-sm text-blue-800/80 mt-1">Your unique ID for support and services.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(12);">Show User ID</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard-container" data-card-id="6">
+                    <div id="flashcard-6" class="flashcard bg-pink-100/70">
+                        <div class="card-content">
+                            <span class="card-title text-pink-900">Register a Complaint</span>
+                            <p class="text-sm text-pink-800/80 mt-1">Report lost items or general issues.</p>
+                        </div>
+                        <div class="card-button-area">
+                            <button class="bg-indigo-600 text-white" onclick="showInfoModal(6);">Report Issue</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="operationsDashboard" class="page flex-col w-full max-w-6xl mx-auto p-8 bg-white rounded-3xl shadow-2xl">
+            <button onclick="showPage('page2');" class="self-start mb-4 bg-gray-600 text-white py-2 px-6 rounded-full font-semibold hover:bg-gray-700 transition-colors">← Back to Pilgrim View</button>
+            <h2 class="text-3xl font-extrabold text-center mb-2 text-red-700">Temple Command Center: Dwarka</h2>
+            <p id="staffRoleDisplay" class="text-xl font-semibold text-center mb-6 text-gray-500"></p>
+            <p class="text-center text-gray-500 mb-8">Real-time IoT Monitoring & AI Forecast for Operations Staff</p>
+            
+            <div id="commandCenterContent" class="space-y-8 w-full">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="metric-card bg-red-100 border-l-4 border-red-500 p-4 rounded-xl shadow-md">
+                        <p class="text-sm font-semibold text-red-600">Predicted 24hr Peak Crowd</p>
+                        <p id="predictedPeak" class="text-3xl font-extrabold mt-1 text-red-800">...</p>
+                        <p class="text-xs text-red-600">Forecast by AI Model</p>
+                    </div>
+                    <div class="metric-card bg-blue-100 border-l-4 border-blue-500 p-4 rounded-xl shadow-md">
+                        <p class="text-sm font-semibold text-blue-600">Current Staff Recommendation</p>
+                        <p id="staffRecommendation" class="text-3xl font-extrabold mt-1 text-blue-800">...</p>
+                        <p class="text-xs text-blue-600">Based on Crowd Load</p>
+                    </div>
+                    <div class="metric-card bg-green-100 border-l-4 border-green-500 p-4 rounded-xl shadow-md">
+                        <p class="text-sm font-semibold text-green-600">Average Queue Throughput</p>
+                        <p id="queueThroughput" class="text-3xl font-extrabold mt-1 text-green-800">...</p>
+                        <p class="text-xs text-green-600">Pilgrims per minute</p>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-gray-50 rounded-xl shadow-inner">
+                    <h3 class="text-xl font-bold mb-4 text-gray-700">IoT Surveillance & Density Status (CCTV/Sensors)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <p class="font-semibold text-gray-600">Main Hall Density (Zone A)</p>
+                            <div id="densityStatus" class="p-3 bg-yellow-200 text-yellow-800 font-bold rounded-lg">MODERATE (3.1 people/m²)</div>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="font-semibold text-gray-600">Entry Gate Anomaly Detection</p>
+                            <div id="anomalyAlert" class="p-3 bg-green-200 text-green-800 font-bold rounded-lg">NORMAL (No anomalies detected)</div>
+                        </div>
+                        <button onclick="showMessage('Simulating access to all live camera feeds.');" class="w-full mt-2 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors md:col-span-2">View Live Camera Feeds (All Zones)</button>
+                    </div>
+                </div>
+                
+                <div id="managerStaffManagement" class="hidden p-6 bg-indigo-50 rounded-xl border border-indigo-300 shadow-md">
+                    <h3 class="text-xl font-extrabold mb-4 text-indigo-700">Manager: Staff Deployment Management</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white p-3 rounded-lg border border-gray-200">
+                            <p class="text-sm font-semibold text-gray-600">Zone A (Main Hall)</p>
+                            <p class="text-2xl font-extrabold text-green-600">5/5 Staff Deployed</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-gray-200">
+                            <p class="text-sm font-semibold text-gray-600">Zone B (Queue Area)</p>
+                            <p class="text-2xl font-extrabold text-red-600">2/4 Staff Deployed</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-gray-200">
+                            <p class="text-sm font-semibold text-gray-600">Medical Post 1</p>
+                            <p class="text-2xl font-extrabold text-green-600">2/2 Staff Deployed</p>
+                        </div>
+                    </div>
+                    <button onclick="showMessage('Simulating dispatch of 2 staff to Zone B Queue Area.');" class="w-full mt-4 bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">Auto-Dispatch Staff to Critical Zones</button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div class="p-6 bg-white rounded-xl border border-red-200 shadow-md">
+                        <h3 class="text-xl font-extrabold mb-4 text-red-600">Active Incidents (Real-time Alerts)</h3>
+                        <ul id="incidentList" class="space-y-2 text-sm">
+                            </ul>
+                        <button class="w-full mt-4 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors" onclick="simulateIncidentResolution();">Resolve All Incidents</button>
+                    </div>
+
+                    <div class="p-6 bg-white rounded-xl border border-blue-200 shadow-md">
+                        <h3 class="text-xl font-extrabold mb-4 text-blue-600">Traffic & Parking Control</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="font-semibold text-gray-600">Approach Road Traffic Flow</p>
+                                <div id="trafficStatus" class="p-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">Moderate Congestion</div>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-600">Parking Lot 1 Occupancy</p>
+                                <div id="parkingOccupancy" class="p-2 bg-green-100 text-green-800 rounded-lg font-medium">75 / 150 (50% full)</div>
+                            </div>
+                            <button class="w-full mt-2 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">Adjust Traffic Signals (API)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="managerForensics" class="hidden p-6 bg-gray-100 rounded-xl border border-gray-300 shadow-md">
+                    <h3 class="text-xl font-extrabold mb-4 text-gray-700">Manager: Incident Forensics & Zone Map</h3>
+                    <p class="text-sm text-gray-600">Review detailed incident logs and analyze crowd flow patterns over time.</p>
+                    <button onclick="showMessage('Accessing forensic logs for crowd analysis and policy refinement.');" class="w-full mt-4 bg-gray-600 text-white py-2 rounded-lg font-semibold hover:bg-gray-700 transition-colors">View Detailed Logs & Heatmaps</button>
+                </div>
+
+                <p class="text-xs text-gray-400 text-right" id="opLastUpdated">Dashboard updated: --:--</p>
+            </div>
+        </div>
+
+        <div id="page3_booking" class="page flex-col w-full max-w-4xl mx-auto p-8 bg-white rounded-3xl shadow-2xl">
+            
+            <button id="backToDashBtn" onclick="showPage('page2');" class="self-start mb-6 bg-gray-600 text-white py-2 px-6 rounded-full font-semibold hover:bg-gray-700 transition-colors">← Back to Dashboard</button>
+
+            <div id="calendarAndSuggestions" class="w-full">
+                <h2 class="text-2xl font-extrabold text-center mb-4 text-indigo-700">Digital Darshan Pass Booking</h2>
+                <div class="p-4 bg-indigo-50 border-l-4 border-indigo-400 rounded-lg mb-6 shadow-sm">
+                    <p class="font-semibold text-indigo-700">Estimated Total Visit Time: <span class="text-indigo-900">~ 1 hour 30 minutes</span></p>
+                    <p class="text-sm text-indigo-600">This includes queue time, main darshan, and inner temple routes.</p>
+                </div>
+                
+                <div id="bestDaySuggestion" class="bg-green-100 p-4 rounded-xl mb-6 shadow-md">
+                    <p class="text-lg font-bold text-green-700 mb-1">✨ Our AI Suggestion for Your Visit:</p>
+                    <p id="suggestedDay" class="font-extrabold text-green-800"></p>
+                    <p id="suggestedReason" class="text-sm text-green-600"></p>
+                </div>
+
+                <div id="calendarView" class="w-full p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prevMonth" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transform hover:scale-105 transition-transform font-bold"><</button>
+                        <h3 id="currentMonth" class="text-2xl font-extrabold text-gray-800"></h3>
+                        <button id="nextMonth" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transform hover:scale-105 transition-transform font-bold">></button>
+                    </div>
+                    <div class="calendar-grid font-bold mb-2 text-gray-500">
+                        <div class="text-center">Sun</div>
+                        <div class="text-center">Mon</div>
+                        <div class="text-center">Tue</div>
+                        <div class="text-center">Wed</div>
+                        <div class="text-center">Thu</div>
+                        <div class="text-center">Fri</div>
+                        <div class="text-center">Sat</div>
+                    </div>
+                    <div id="calendarDates" class="calendar-grid"></div>
+                </div>
+            </div>
+
+            <div id="bookingForm" class="hidden flex-col space-y-4 w-full max-w-xl mx-auto mt-6 p-6 bg-white rounded-3xl shadow-2xl border border-indigo-100">
+                <button id="backToCalendar" class="bg-gray-700 text-white py-2 px-6 rounded-full font-semibold hover:bg-gray-800 transition-colors mb-4 transform hover:scale-[1.01]">← Change Date/Time</button>
+                <h3 class="text-xl font-extrabold text-center text-indigo-700">Pilgrim Details & Verification</h3>
+
+                <label class="block">
+                    <span class="text-gray-700 font-semibold">Full Name</span>
+                    <input type="text" id="fullName" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2.5">
+                </label>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="block">
+                        <span class="text-gray-700 font-semibold">Age</span>
+                        <input type="number" id="age" min="1" max="100" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2.5">
+                    </label>
+                    <label class="block">
+                        <span class="text-gray-700 font-semibold">Mobile Number</span>
+                        <input type="tel" id="mobileNumber" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2.5">
+                    </label>
+                </div>
+                <label class="block">
+                    <span class="text-gray-700 font-semibold">Aadhaar Number (Simulated Verification)</span>
+                    <input type="text" id="aadhaarNumber" maxlength="12" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2.5">
+                </label>
+                    <label class="block">
+                    <span class="text-gray-700 font-semibold">Number of Passes (Max 6)</span>
+                    <input type="number" id="passCount" min="1" max="6" value="1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2.5">
+                </label>
+                
+                <h3 class="text-xl font-extrabold mt-6 text-gray-800">Selected Date and Time Slot</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+                    <p id="selectedDateText" class="text-gray-800 font-bold self-center"></p>
+                    <label class="block">
+                        <span class="text-gray-700 font-semibold">Select Time Slot</span>
+                        <select id="timeSelect" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2.5"></select>
+                    </label>
+                </div>
+
+                <button id="submitBooking" class="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold hover:bg-green-700 transition-colors shadow-lg transform hover:scale-[1.01]">Generate Digital Pass</button>
+            </div>
+
+            <div id="digitalPass" class="hidden flex-col items-center p-8 bg-white rounded-3xl shadow-2xl space-y-6 mt-6 w-full max-w-xl mx-auto border-4 border-green-400">
+                <h3 class="text-3xl font-extrabold text-green-600 animate-pulse">PASS GENERATED!</h3>
+                <div class="w-24 h-24 bg-green-200 rounded-full flex items-center justify-center shadow-lg">
+                    <svg class="w-16 h-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.01 12.01 0 002.944 12c0 2.857 1.114 5.485 2.944 7.556l6.618-3.04a11.955 11.955 0 018.618-3.04A12.01 12.01 0 0021.056 12c0-2.857-1.114-5.485-2.944-7.556z"></path></svg>
+                </div>
+                
+                <div class="text-center space-y-2 bg-gray-50 p-6 rounded-xl w-full border border-gray-200">
+                    <p class="text-xl font-extrabold text-indigo-700" id="passId"></p>
+                    <p class="text-gray-800"><strong>Pilgrim:</strong> <span id="passName" class="font-semibold"></span> (<span id="passAge" class="font-semibold"></span>)</p>
+                    <p class="text-gray-800"><strong>Tickets:</strong> <span id="passCountText" class="font-semibold"></span></p>
+                    <p class="text-gray-800"><strong>Date:</strong> <span id="passDate" class="font-semibold"></span></p>
+                    <p class="text-2xl font-extrabold text-red-600 mt-3">ENTRY TIME: <span id="passTime"></span></p>
+                    
+                    <div class="mt-4 p-3 bg-indigo-100 rounded-lg">
+                        <p class="font-extrabold text-indigo-700">Digital Queue Status:</p>
+                        <p class="text-3xl font-extrabold text-indigo-800"><span id="personsAhead">--</span> Persons Ahead</p>
+                    </div>
+                    
+                    <img id="qrCode" class="mt-4 mx-auto w-40 h-40 border-4 border-gray-200 rounded-lg" src="https://placehold.co/150x150/4F46E5/FFFFFF?text=QR+Code" alt="QR Code">
+                </div>
+                <button onclick="showPage('page2');" class="mt-4 bg-gray-600 text-white py-3 px-8 rounded-xl font-semibold hover:bg-gray-700 transition-colors shadow-lg transform hover:scale-[1.01]">Return to Dashboard</button>
+            </div>
+        </div>
+        
+        <div id="crowdPredictionPage" class="page flex-col w-full max-w-6xl mx-auto p-8 bg-white rounded-3xl shadow-2xl">
+            <button onclick="showPage('page2');" class="self-start mb-4 bg-gray-600 text-white py-2 px-6 rounded-full font-semibold hover:bg-gray-700 transition-colors">← Back to Dashboard</button>
+            <h2 class="text-2xl font-extrabold text-center mb-6 text-indigo-700">Real-time Crowd Prediction</h2>
+            
+            <div id="crowdPredictionContent" class="space-y-6">
+                <div class="bg-indigo-50 border-l-4 border-indigo-400 text-indigo-700 p-6 rounded-lg flex flex-col items-center shadow-md">
+                    <p class="text-lg font-semibold mb-2">Current Crowd Prediction:</p>
+                    <div id="loadingIndicator" class="text-2xl font-bold">
+                        <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <p id="crowdNumber" class="text-6xl font-extrabold text-indigo-800 hidden"></p>
+                    <p id="crowdStatus" class="mt-2 text-xl font-medium text-indigo-700 hidden"></p>
+                </div>
+
+                <div class="p-4 bg-red-100 border-l-4 border-red-400 rounded-lg shadow-sm">
+                    <p class="font-semibold text-red-700">Estimated Travel Time (Your Location to Temple)</p>
+                    <p id="travelTime" class="text-2xl font-extrabold text-red-800 mt-2">Calculating...</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="p-4 bg-gray-100 rounded-lg shadow-sm">
+                        <p class="font-semibold text-gray-700">Estimated Waiting Time</p>
+                        <p id="estimatedWaitTime" class="text-2xl font-extrabold text-gray-800 mt-2">--</p>
+                    </div>
+                    <div class="p-4 bg-gray-100 rounded-lg shadow-sm">
+                        <p class="font-semibold text-gray-700">Best Month to Visit</p>
+                        <p id="bestMonth" class="text-2xl font-extrabold text-gray-800 mt-2">--</p>
+                    </div>
+                    <div class="p-4 bg-gray-100 rounded-lg flex flex-col justify-center shadow-sm">
+                        <p class="font-semibold text-indigo-700">Daily Forecast Summary</p>
+                        <button onclick="document.getElementById('dailyForecastSection').classList.toggle('hidden');" class="mt-1 bg-indigo-500 text-white py-1 rounded-full text-sm font-semibold hover:bg-indigo-600">View Next 7 Days</button>
+                    </div>
+                </div>
+                
+                <div id="dailyForecastSection" class="hidden p-6 bg-white rounded-lg border border-gray-300 shadow-md">
+                    <h4 class="text-xl font-bold mb-3 text-gray-700">7-Day Crowd Forecast (Pilgrims in numbers)</h4>
+                    <div id="dailyCrowdForecast" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                        </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-6 bg-yellow-50 rounded-lg shadow-sm">
+                        <h4 class="text-lg font-bold mb-2">Factors Influencing Crowd</h4>
+                        <div class="text-sm">
+                            <p class="font-semibold">Current Weather Impact:</p>
+                            <p id="weatherImpact" class="font-medium text-gray-700">Checking...</p>
+                        </div>
+                        <div class="mt-4">
+                            <p class="font-semibold">Upcoming Holidays:</p>
+                            <ul id="holidayList" class="list-disc list-inside text-xs mt-1 text-gray-700">
+                                <li>Loading...</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6 bg-gray-50 rounded-lg shadow-sm">
+                        <h4 class="text-lg font-bold mb-3 text-gray-700">Monthly Crowd Index (Simulated)</h4>
+                        <div id="monthlyCrowdForecast" class="h-48 overflow-y-scroll space-y-1 divide-y divide-gray-200">
+                            </div>
+                        <p class="text-xs text-gray-500 mt-2">Index based on average expected daily visitors.</p>
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-400 text-right" id="lastUpdated">Last updated: --:--</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="infoModal" class="modal">
+        <div id="modal-content" class="modal-content">
+            <span class="close-button" onclick="closeInfoModal()">×</span>
+            <h3 id="modalTitle" class="text-2xl font-bold mb-4"></h3>
+            <div id="modalBody" class="text-left space-y-4">
+                <p id="modalText"></p>
+            </div>
+            <div id="loadingIndicatorModal" class="hidden mt-4 text-center">
+                <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-2 text-gray-500">Generating content...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="chat-window" class="hidden">
+        <div class="bg-indigo-600 text-white p-4 rounded-t-xl flex justify-between items-center">
+            <h4 class="font-bold">Mandir Mitra AI Assistant</h4>
+            <button onclick="toggleChatbot()" class="text-white hover:text-indigo-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-3 flex flex-col">
+            <div class="chat-message ai-message">Namaste 🙏! I am the Mandir Mitra AI. How can I help with your visit, Darshan pass, or temple info?</div>
+        </div>
+        <div class="p-3 border-t border-gray-200 flex space-x-2">
+            <input type="text" id="chat-input" placeholder="Ask a question..." class="flex-grow p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            <button onclick="sendChatMessage()" class="bg-indigo-600 text-white p-2 rounded-lg font-semibold hover:bg-indigo-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <button id="chatbot-button" onclick="toggleChatbot()">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+    </button>
+    <script>
+        // --- API KEY and Simulated LLM Data ---
+        // NOTE: The API key is left blank as per instructions.
+        const API_KEY = ""; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        let crowdPredictionInterval = null;
+        let operationsDashboardInterval = null;
+        let staffRole = null; // Stores the currently logged-in staff role
+
+        // Mock data and utility state
+        const MOCK_USER_ID = 'user123_dwarka';
+        const timeSlots = ["08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM"];
+        let selectedDate = null;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let activeIncidents = [
+            { id: 101, type: 'Medical Emergency', zone: 'Queue Hall B', status: 'Active', time: new Date() },
+        ];
+
+        const indianHolidays = [
+            '2025-10-02', 'Gandhi Jayanti (High Crowd)',
+            '2025-10-20', 'Diwali (Extreme Crowd)',
+            '2025-11-01', 'Bhai Dooj (High Crowd)',
+            '2025-12-25', 'Christmas (Moderate Crowd)',
+        ];
+        
+        const monthlyCrowd = [
+            { month: 'Jan', crowd: 120 }, { month: 'Feb', crowd: 110 }, { month: 'Mar', crowd: 130 }, 
+            { month: 'Apr', crowd: 160 }, { month: 'May', crowd: 250 }, { month: 'Jun', crowd: 220 },
+            { month: 'Jul', crowd: 150 }, { month: 'Aug', crowd: 140 }, { month: 'Sep', crowd: 100 },
+            { month: 'Oct', crowd: 180 }, { month: 'Nov', crowd: 160 }, { month: 'Dec', crowd: 140 },
+        ];
+
+        // Mocks for information modal (for static/simple cards)
+        const modalData = {
+            12: { title: 'My User ID', text: 'Your unique user ID is: ' + MOCK_USER_ID },
+        };
+
+        // --- Core Navigation and UI Functions ---
+
+        function showMessage(message) {
+            const msgBox = document.getElementById('messageBox');
+            msgBox.textContent = message;
+            msgBox.classList.add('show');
+            setTimeout(() => {
+                msgBox.classList.remove('show');
+            }, 3000); 
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo(0, 0); // Scroll to top on page change
+            
+            // Clear prediction intervals when leaving respective pages
+            if (pageId !== 'crowdPredictionPage' && crowdPredictionInterval) {
+                clearInterval(crowdPredictionInterval);
+                crowdPredictionInterval = null;
+            }
+            if (pageId !== 'operationsDashboard' && operationsDashboardInterval) {
+                clearInterval(operationsDashboardInterval);
+                operationsDashboardInterval = null;
+            }
+            
+            // Hide chatbot on staff pages (login, dashboard)
+            const chatButton = document.getElementById('chatbot-button');
+            const chatWindow = document.getElementById('chat-window');
+            if (pageId === 'page1' || pageId === 'staffLogin' || pageId === 'operationsDashboard') {
+                chatButton.classList.add('hidden');
+                chatWindow.classList.remove('open');
+                chatWindow.classList.add('hidden');
+            } else {
+                chatButton.classList.remove('hidden');
+                chatWindow.classList.remove('hidden');
+            }
+        }
+        
+        // --- Mock LLM API Call (Simulated for single-file compatibility) ---
+        async function callGeminiAPI(prompt, systemInstruction = "You are a helpful assistant.", tools = []) {
+            return new Promise(resolve => {
+                let mockText = "";
+                if (prompt.includes("history and significance")) {
+                    mockText = "The Dwarkadhish Temple, also known as the Jagat Mandir, is a revered Hindu temple dedicated to the god Krishna, who is worshipped here as Dwarkadhish, or 'King of Dwarka'. The main shrine, dating back 2,500 years, is believed to have been built by Krishna's grandson, Vajranabha. The current structure, a five-story building supported by 72 pillars, was largely renovated in the 15th-16th century. It is a key pilgrimage site and part of the Char Dham yatra.";
+                } else if (prompt.includes("vivid and poetic description")) {
+                    mockText = "As you approach the great spire of the Dwarkadhish Mandir, you are enveloped by the sound of bells and devotional chants. The sandstone structure rises majestically against the coastal sky, adorned with intricate carvings of celestial dancers and ancient tales. Within the courtyard, the air is thick with the scent of incense, leading the eye to the central sanctuary where the dark idol of Lord Krishna offers eternal peace to all devotees. The 360-degree view captures the rhythmic flapping of the temple's flag, a symbol of divine sovereignty over the endless blue ocean.";
+                } else if (prompt.includes("Summarize the following complaint")) {
+                    mockText = "Summary: The pilgrim lost their phone near the entry gate. Category: Lost and Found.";
+                } else if (prompt.includes("help with Darshan pass")) {
+                    // Chatbot-specific response for a common query
+                    mockText = "You can book your Digital Darshan Pass by clicking the **'Book Now'** button on the main dashboard. It's a quick process to select your date and time slot!";
+                } else if (prompt.includes("what are the timings")) {
+                    // Chatbot-specific response for another common query
+                    mockText = "The temple is generally open for Darshan in the morning (6:30 AM to 1:00 PM) and evening (5:00 PM to 9:30 PM). You can find more details by clicking the **'Temple Timings'** card on the dashboard.";
+                } else if (prompt.includes("thank")) {
+                    mockText = "It is my pleasure to assist you. Jai Shri Krishna! 🙏";
+                } else {
+                    mockText = "Simulated AI response: I'm sorry, I couldn't find a direct answer to that specific question. You can try the **Search Bar** or look for related cards on the dashboard.";
+                }
+
+                setTimeout(() => {
+                    resolve({ text: mockText, sources: [] });
+                }, 1500); // Simulate network delay
+            });
+        }
+        
+        // --- Staff Login Functions ---
+        
+        function showStaffLoginPage() {
+            showPage('staffLogin');
+            document.getElementById('staffRole').value = '';
+            document.getElementById('staffUsername').value = '';
+            document.getElementById('staffPassword').value = '';
+        }
+        
+        function authenticateStaff() {
+            const role = document.getElementById('staffRole').value;
+            const username = document.getElementById('staffUsername').value;
+            const password = document.getElementById('staffPassword').value;
+
+            if (!role || username.trim() === '' || password.trim() === '') {
+                showMessage("Please select a role and enter credentials.");
+                return;
+            }
+            
+            staffRole = role; 
+            showMessage(`Login successful! Welcome, ${role} Staff.`);
+            
+            showOperationsDashboard();
+        }
+
+        // --- Crowd Prediction & Dashboard Functions (helpers remain the same) ---
+        
+        function predictCrowd() {
+            const now = new Date();
+            const day = now.getDay(); 
+            const hour = now.getHours();
+            const baseCrowd = [150, 80, 70, 90, 110, 200, 250]; 
+            let predictedNumber = baseCrowd[day];
+            
+            if (hour >= 6 && hour < 9) { predictedNumber = Math.round(predictedNumber * 1.5); } 
+            else if (hour >= 18 && hour < 21) { predictedNumber = Math.round(predictedNumber * 1.8); } 
+            else if (hour < 6 || hour > 21) { predictedNumber = Math.round(predictedNumber * 0.5); }
+            else { predictedNumber = Math.round(predictedNumber * 0.9); }
+
+            const dateString = now.toISOString().split('T')[0];
+            const isHoliday = indianHolidays.map(h => h.split(',')[0]).includes(dateString);
+            if (isHoliday) { predictedNumber = Math.round(predictedNumber * 1.5); } 
+
+            const fluctuation = Math.floor(Math.random() * 20) - 10;
+            return Math.max(10, predictedNumber + fluctuation); 
+        }
+
+        function calculateWaitTime(crowd) {
+            if (crowd < 50) return '15 - 30 min';
+            if (crowd < 150) return '30 - 60 min';
+            if (crowd < 300) return '60 - 90 min';
+            return '90+ min';
+        }
+
+        function getBestMonth() {
+            const lowestCrowdMonth = monthlyCrowd.reduce((prev, current) => (prev.crowd < current.crowd) ? prev : current);
+            return lowestCrowdMonth.month;
+        }
+
+        function getWeatherImpact() {
+            const conditions = ['Pleasant', 'Sunny', 'Rainy', 'Hot'];
+            const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
+            const impactMap = {
+                'Pleasant': 'Crowd is high due to ideal weather.',
+                'Sunny': 'Crowd is high, dress appropriately.',
+                'Rainy': 'Crowd may be lower than usual. Carry an umbrella.',
+                'Hot': 'Crowd may be lower. Stay hydrated!',
+            };
+            return { condition: randomCondition, impact: impactMap[randomCondition] };
+        }
+        
+        function getDailyCrowdForecast() {
+            const forecast = [];
+            const today = new Date();
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                const dateString = date.toISOString().split('T')[0];
+
+                let crowd;
+                if (date.getDay() === 0 || date.getDay() === 6) {
+                    crowd = Math.floor(Math.random() * 200) + 150; 
+                } else {
+                    crowd = Math.floor(Math.random() * 100) + 50; 
+                }
+                
+                const isHoliday = indianHolidays.some(h => h.startsWith(dateString));
+                if (isHoliday) {
+                    crowd = Math.floor(crowd * 1.5);
+                }
+
+                forecast.push({ 
+                    day: daysOfWeek[date.getDay()], 
+                    date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 
+                    crowd: crowd 
+                });
+            }
+            return forecast;
+        }
+
+        function populateHolidayList() {
+            const list = document.getElementById('holidayList');
+            list.innerHTML = '';
+            indianHolidays.forEach(item => {
+                const [date, name] = item.split(', ');
+                const li = document.createElement('li');
+                li.textContent = `${name} (${date.substring(5)})`; 
+                list.appendChild(li);
+            });
+        }
+
+        function simulateTravelTime() {
+            const hours = new Date().getHours();
+            let baseMinutes = 40; 
+            
+            if ((hours >= 7 && hours <= 10) || (hours >= 17 && hours <= 19)) {
+                baseMinutes += Math.floor(Math.random() * 30); 
+            }
+            
+            return `${baseMinutes} - ${baseMinutes + 15} minutes (45 km)`;
+        }
+
+        function updateCrowdPredictionPage() {
+            const crowdNumberElement = document.getElementById('crowdNumber');
+            const crowdStatusElement = document.getElementById('crowdStatus');
+            const estimatedWaitTimeElement = document.getElementById('estimatedWaitTime');
+            const bestMonthElement = document.getElementById('bestMonth');
+            const weatherImpactElement = document.getElementById('weatherImpact');
+            const lastUpdatedElement = document.getElementById('lastUpdated');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const travelTimeElement = document.getElementById('travelTime');
+            const dailyCrowdElement = document.getElementById('dailyCrowdForecast');
+            const monthlyCrowdElement = document.getElementById('monthlyCrowdForecast');
+
+
+            if (!crowdNumberElement || !estimatedWaitTimeElement) return; 
+
+            loadingIndicator.classList.remove('hidden');
+            crowdNumberElement.classList.add('hidden');
+            crowdStatusElement.classList.add('hidden');
+            
+            setTimeout(() => {
+                const currentCrowd = predictCrowd();
+                const estimatedWaitTime = calculateWaitTime(currentCrowd);
+                const bestMonth = getBestMonth();
+                const weather = getWeatherImpact();
+                const travelTime = simulateTravelTime();
+                const dailyForecast = getDailyCrowdForecast();
+                const monthlyForecast = monthlyCrowd;
+                
+                crowdNumberElement.textContent = currentCrowd.toLocaleString();
+                crowdStatusElement.textContent = `Estimated Waiting Time: ${estimatedWaitTime}`;
+                estimatedWaitTimeElement.textContent = estimatedWaitTime;
+                bestMonthElement.textContent = bestMonth;
+                weatherImpactElement.textContent = `${weather.condition}: ${weather.impact}`;
+                travelTimeElement.textContent = travelTime;
+                
+                const now = new Date();
+                lastUpdatedElement.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+
+                // Daily Forecast Table Generation
+                dailyCrowdElement.innerHTML = dailyForecast.map(item => `
+                    <div class="flex flex-col p-2 bg-gray-100 rounded-lg shadow-sm ${item.crowd > 200 ? 'border-red-500 border-l-4' : 'border-green-500 border-l-4'}">
+                        <span class="text-xs font-medium text-gray-500">${item.day}, ${item.date.substring(0, item.date.length - 5)}</span>
+                        <span class="font-extrabold text-xl ${item.crowd > 200 ? 'text-red-700' : 'text-green-700'}">${item.crowd}</span>
+                        <span class="text-xs text-gray-600">Pilgrims</span>
+                    </div>
+                `).join('');
+
+                // Monthly Forecast Table Generation
+                monthlyCrowdElement.innerHTML = monthlyForecast.map(item => `
+                    <div class="flex justify-between items-center p-2">
+                        <span class="font-semibold text-gray-700">${item.month}</span>
+                        <span class="font-extrabold ${item.crowd > 200 ? 'text-yellow-700' : 'text-green-600'}">${item.crowd}</span>
+                    </div>
+                `).join('');
+
+
+                loadingIndicator.classList.add('hidden');
+                crowdNumberElement.classList.remove('hidden');
+                crowdStatusElement.classList.remove('hidden');
+            }, 500); 
+        }
+
+        function showCrowdPredictionPage() {
+            showPage('crowdPredictionPage');
+            populateHolidayList();
+            updateCrowdPredictionPage();
+            if (crowdPredictionInterval) clearInterval(crowdPredictionInterval);
+            crowdPredictionInterval = setInterval(updateCrowdPredictionPage, 10000); 
+        }
+
+        function getDensityStatus(crowd) { 
+            const density = (crowd / 1000).toFixed(1); 
+            if (crowd < 150) return { status: 'LOW', color: 'bg-green-200', text: `LOW (${density} people/m²)` };
+            if (crowd < 350) return { status: 'MODERATE', color: 'bg-yellow-200', text: `MODERATE (${density} people/m²)` };
+            return { status: 'CRITICAL', color: 'bg-red-200', text: `CRITICAL (${density} people/m²)` };
+        }
+        function getTrafficStatus() { 
+            const traffic = Math.random();
+            if (traffic < 0.3) return { status: 'LOW', color: 'bg-green-100', text: 'Free Flow' };
+            if (traffic < 0.7) return { status: 'MODERATE', color: 'bg-yellow-100', text: 'Moderate Congestion' };
+            return { status: 'HIGH', color: 'bg-red-100', text: 'Heavy Congestion' };
+        }
+
+        function updateOperationsDashboard() { 
+            const currentCrowd = predictCrowd();
+            const crowdStatus = getDensityStatus(currentCrowd);
+            const trafficStatus = getTrafficStatus();
+            
+            const predictedPeak = Math.max(currentCrowd, 400 + Math.floor(Math.random() * 200));
+            const totalStaff = Math.floor(20 + predictedPeak / 100);
+            const queueThroughput = (Math.floor(Math.random() * 5) + 8); 
+
+            // Update UI
+            document.getElementById('predictedPeak').textContent = predictedPeak.toLocaleString();
+            document.getElementById('staffRecommendation').textContent = `${totalStaff} Staff Required`;
+            document.getElementById('queueThroughput').textContent = `${queueThroughput}/min`;
+
+            document.getElementById('densityStatus').textContent = crowdStatus.text;
+            document.getElementById('densityStatus').className = `p-3 font-bold rounded-lg ${crowdStatus.color} text-gray-800`;
+            
+            document.getElementById('anomalyAlert').textContent = crowdStatus.status === 'CRITICAL' 
+                ? 'ALERT: High Density / Crowd Bottleneck Detected' : 'NORMAL (No anomalies detected)';
+            document.getElementById('anomalyAlert').className = `p-3 font-bold rounded-lg ${crowdStatus.status === 'CRITICAL' ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`;
+
+            document.getElementById('trafficStatus').textContent = trafficStatus.text;
+            document.getElementById('trafficStatus').className = `p-2 rounded-lg font-medium ${trafficStatus.color} ${trafficStatus.color.includes('red') ? 'text-red-800' : 'text-gray-800'}`;
+
+            document.getElementById('parkingOccupancy').textContent = `${Math.floor(Math.random() * 100) + 50} / 200 (${Math.floor(Math.random() * 50) + 25}% full)`;
+
+            renderIncidentList();
+
+            const now = new Date();
+            document.getElementById('opLastUpdated').textContent = `Dashboard updated: ${now.toLocaleTimeString()}`;
+        }
+        function renderIncidentList() { 
+            const list = document.getElementById('incidentList');
+            if (activeIncidents.length === 0) {
+                list.innerHTML = `<li class="text-green-600 font-semibold">No active high-priority incidents.</li>`;
+            } else {
+                list.innerHTML = activeIncidents.map(inc => 
+                    `<li class="flex justify-between items-center text-red-700 font-medium p-1 bg-red-50 rounded-md">
+                        <span>🚨 ${inc.type} in ${inc.zone}</span>
+                        <span class="text-xs text-red-500">${Math.floor((new Date() - inc.time) / 60000)} min ago</span>
+                    </li>`
+                ).join('');
+            }
+        }
+        function simulateIncidentResolution() { 
+            activeIncidents = [];
+            renderIncidentList();
+            showMessage('All incidents marked as resolved.');
+        }
+        
+        function showOperationsDashboard() { 
+            showPage('operationsDashboard');
+            
+            // Set the staff role display
+            document.getElementById('staffRoleDisplay').textContent = `Role: ${staffRole || 'Guest'}`;
+            
+            // Toggle Manager-specific sections
+            if (staffRole === 'Manager') {
+                document.getElementById('managerStaffManagement').classList.remove('hidden');
+                document.getElementById('managerForensics').classList.remove('hidden');
+            } else {
+                document.getElementById('managerStaffManagement').classList.add('hidden');
+                document.getElementById('managerForensics').classList.add('hidden');
+            }
+            
+            updateOperationsDashboard();
+            if (operationsDashboardInterval) clearInterval(operationsDashboardInterval);
+            operationsDashboardInterval = setInterval(updateOperationsDashboard, 10000); 
+        }
+
+        // --- Booking Specific Functions ---
+        
+        function getSlotAvailability(dateString) {
+            const max = 200; 
+            const date = new Date(dateString);
+            const day = date.getDay(); 
+            let baseBooked = 0;
+            
+            if (day === 0 || day === 6) {
+                baseBooked = Math.floor(Math.random() * 100) + 80; 
+            } else {
+                baseBooked = Math.floor(Math.random() * 60) + 20; 
+            }
+            
+            const isHoliday = indianHolidays.map(h => h.split(',')[0]).includes(dateString);
+            if (isHoliday) {
+                 baseBooked = Math.min(max, baseBooked + 50);
+            }
+            
+            const booked = Math.min(max, baseBooked);
+            return max - booked;
+        }
+
+        function findBestBookingDay() {
+            const today = new Date();
+            let bestDay = null;
+            let maxAvailable = -1;
+
+            for (let i = 1; i <= 14; i++) { // Check next 14 days
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                const dateString = date.toISOString().split('T')[0];
+                const dailyAvailable = getSlotAvailability(dateString);
+
+                if (dailyAvailable > maxAvailable) {
+                    maxAvailable = dailyAvailable;
+                    bestDay = date;
+                }
+            }
+            
+            if (!bestDay) return { day: 'N/A', reason: 'No slots available soon.' };
+            
+            const dayOfWeek = bestDay.toLocaleDateString('en-US', { weekday: 'long' });
+            const dateString = bestDay.toISOString().split('T')[0];
+            let reason = `Based on crowd prediction, this ${dayOfWeek} offers the lowest expected crowd (Highest pass availability).`;
+
+            if (indianHolidays.map(h => h.split(',')[0]).includes(dateString)) {
+                reason = `CAUTION: This day is a major holiday, expect high crowds and potential long queues. Consider a weekday instead.`;
+            } else if (bestDay.getDay() === 1 || bestDay.getDay() === 2) { 
+                reason = `Crowd forecasts are lowest on weekdays, offering the shortest potential queue time.`;
+            }
+
+            return { 
+                day: bestDay.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), 
+                reason: reason 
+            };
+        }
+        
+        function renderCalendar(month, year) {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('currentMonth').textContent = `${monthNames[month]} ${year}`;
+            const datesContainer = document.getElementById('calendarDates');
+            datesContainer.innerHTML = '';
+            
+            const today = new Date();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) { datesContainer.innerHTML += '<div></div>'; }
+            for (let i = 1; i <= daysInMonth; i++) {
+                const date = new Date(year, month, i);
+                const dateString = date.toISOString().split('T')[0];
+                const slotsAvailable = getSlotAvailability(dateString);
+                const isFullyBooked = slotsAvailable <= 0;
+                const isPast = date.setHours(0,0,0,0) < today.setHours(0,0,0,0);
+
+                const dayDiv = document.createElement('div');
+                dayDiv.classList.add('calendar-day');
+                dayDiv.innerHTML = `<span class="text-lg">${i}</span><span class="slot-count">${isPast ? 'Past' : (isFullyBooked ? 'Booked' : `Avail: ${slotsAvailable}`)}</span>`;
+                
+                if (isPast) {
+                    dayDiv.classList.add('bg-gray-200', 'text-gray-500');
+                    dayDiv.style.cursor = 'not-allowed';
+                } else if (isFullyBooked) {
+                    dayDiv.classList.add('booked', 'bg-red-100', 'text-red-700');
+                    dayDiv.style.cursor = 'not-allowed';
+                } else {
+                    dayDiv.classList.add('available');
+                    dayDiv.addEventListener('click', () => {
+                        document.querySelectorAll('.calendar-day').forEach(day => day.classList.remove('selected'));
+                        dayDiv.classList.add('selected');
+                        selectedDate = date;
+                        showBookingForm();
+                    });
+                }
+                datesContainer.appendChild(dayDiv);
+            }
+        }
+        
+        function showBookingCalendar() {
+            showPage('page3_booking');
+            document.getElementById('calendarAndSuggestions').classList.remove('hidden');
+            document.getElementById('bookingForm').classList.add('hidden');
+            document.getElementById('digitalPass').classList.add('hidden');
+
+            const suggestion = findBestBookingDay();
+            document.getElementById('suggestedDay').textContent = `Recommended Day: ${suggestion.day}`;
+            document.getElementById('suggestedReason').textContent = `Reason: ${suggestion.reason}`;
+            
+            renderCalendar(currentMonth, currentYear);
+        }
+
+        function showBookingForm() {
+            document.getElementById('calendarAndSuggestions').classList.add('hidden');
+            document.getElementById('bookingForm').classList.remove('hidden');
+
+            const dateDisplay = selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            document.getElementById('selectedDateText').textContent = `Selected Date: ${dateDisplay}`;
+            
+            const timeSelect = document.getElementById('timeSelect');
+            timeSelect.innerHTML = timeSlots.map(slot => `<option value="${slot}">${slot}</option>`).join('');
+            timeSelect.value = timeSlots[0]; // Set default time slot
+        }
+        
+        function simulateDigitalQueue() {
+            const hour = new Date().getHours();
+            let baseQueue = 50;
+            if (hour >= 7 && hour < 10) baseQueue = 150; 
+            if (hour >= 17 && hour < 20) baseQueue = 120; 
+            
+            const randomAhead = Math.floor(Math.random() * baseQueue) + 5;
+            return randomAhead;
+        }
+
+        function generatePass() {
+            const fullName = document.getElementById('fullName').value;
+            const age = document.getElementById('age').value;
+            const mobileNumber = document.getElementById('mobileNumber').value;
+            const aadhaarNumber = document.getElementById('aadhaarNumber').value;
+            const passCount = document.getElementById('passCount').value;
+            const selectedTime = document.getElementById('timeSelect').value;
+            
+            // Simple validation
+            if (!fullName || !age || !mobileNumber || !aadhaarNumber || !passCount || !selectedDate || !selectedTime) {
+                showMessage('Please fill in all required details.');
+                return;
+            }
+            if (passCount < 1 || passCount > 6) {
+                showMessage('Maximum 6 passes allowed.');
+                return;
+            }
+            if (aadhaarNumber.length !== 12 || isNaN(aadhaarNumber)) {
+                showMessage('Aadhaar verification failed. Must be 12 digits.');
+                return;
+            }
+            
+            const passId = 'MM' + Math.floor(100000 + Math.random() * 900000);
+            const selectedDateString = selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            const personsAhead = simulateDigitalQueue();
+            
+            // Update Pass UI
+            document.getElementById('passId').textContent = 'Pass ID: ' + passId;
+            document.getElementById('passName').textContent = fullName;
+            document.getElementById('passAge').textContent = `${age} yrs`;
+            document.getElementById('passCountText').textContent = passCount;
+            document.getElementById('passDate').textContent = selectedDateString;
+            document.getElementById('passTime').textContent = selectedTime;
+            document.getElementById('personsAhead').textContent = personsAhead;
+
+            // Generate mock QR Code data
+            document.getElementById('qrCode').src = `https://placehold.co/150x150/4F46E5/FFFFFF?text=${passId}`;
+            
+            document.getElementById('bookingForm').classList.add('hidden');
+            document.getElementById('digitalPass').classList.remove('hidden');
+            showMessage('Digital Darshan Pass Generated!');
+        }
+
+        // --- Main Modal Handler (Pilgrim View) ---
+        async function showInfoModal(cardId) {
+            const modal = document.getElementById('infoModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            const loadingIndicatorModal = document.getElementById('loadingIndicatorModal');
+            
+            // Clear previous content
+            modalTitle.textContent = 'Loading...';
+            modalBody.innerHTML = '';
+            loadingIndicatorModal.classList.remove('hidden');
+
+            modal.style.display = 'flex';
+            
+            switch (cardId) {
+                case 3: // Temple Timings & Waiting Time (Dynamic)
+                    const currentCrowd = predictCrowd();
+                    const waitTime = calculateWaitTime(currentCrowd);
+                    modalTitle.textContent = "Live Timings & Wait Time";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-center text-lg font-extrabold mb-3 text-gray-800">Dwarkadhish Temple Timings</p><ul class="list-disc list-inside space-y-1 text-gray-700 mx-auto w-fit text-left"><li>**Morning Darshan:** 6:30 AM to 1:00 PM</li><li>**Evening Darshan:** 5:00 PM to 9:30 PM</li></ul><div class="mt-4 p-3 bg-indigo-100 rounded-xl shadow-inner"><p class="font-bold text-indigo-700">Live Estimated Wait Time:</p><p class="text-3xl font-extrabold text-indigo-800">${waitTime}</p></div>`;
+                    break;
+                case 4: // Route Directions (Action-Oriented)
+                    modalTitle.textContent = "Route Directions";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-center text-lg mb-4">View the temple location and map routes instantly.</p><button onclick="window.open('https://www.google.com/maps/search/Dwarkadhish+Temple+Dwarka', '_blank'); closeInfoModal();" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors transform hover:scale-[1.01]">Open Route on Google Maps</button><p class="text-sm mt-3 text-gray-500 text-center">Note: This will open a new window to a map application.</p>`;
+                    break;
+                case 5: // Emergency Services (Action-Oriented)
+                    modalTitle.textContent = "Emergency & SOS";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-center text-lg mb-4 text-red-600 font-extrabold">Immediate Assistance Contacts</p><div class="space-y-3"><div class="flex justify-between items-center bg-gray-100 p-3 rounded-lg border border-gray-200"><p class="font-semibold">Temple Security:</p> <span class="font-extrabold text-gray-800">98765 43210</span></div><div class="flex justify-between items-center bg-gray-100 p-3 rounded-lg border border-gray-200"><p class="font-semibold">Medical / First Aid:</p> <span class="font-extrabold text-gray-800">98765 43211</span></div></div><button onclick="showMessage('SOS Alert Sent! Staff is en route.'); closeInfoModal();" class="w-full mt-4 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors transform hover:scale-[1.01]">🚨 Trigger SOS Alert</button>`;
+                    break;
+                case 7: // PwD Services (Practical List + Action)
+                    modalTitle.textContent = "PwD & Accessibility Services";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-lg font-semibold mb-3">Accessibility & Priority Services</p><ul class="list-disc list-inside space-y-2 text-gray-700 text-left"><li>**Priority Darshan:** Dedicated, shorter queue access for PwD and senior citizens.</li><li>**Wheelchairs:** Available free of charge at all entry points.</li><li>**Ramps:** All major sections are ramp-accessible.</li><li>**Volunteer Assistance:** Request a trained volunteer at the Help Desk.</li></ul><button onclick="showMessage('Volunteer requested for PwD assistance. Please wait near the main entrance.'); closeInfoModal();" class="w-full mt-4 bg-teal-600 text-white py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors transform hover:scale-[1.01]">Request Volunteer</button>`;
+                    break;
+                case 8: // Food Token (Dynamic Code)
+                    modalTitle.textContent = "Prasadam / Food Token";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-center text-lg mb-3">Your digital darshan pass entitles you to one food token for Prasadam at the Annakshetra.</p><div class="p-4 bg-indigo-100 rounded-lg"><p class="text-lg font-bold text-indigo-700">Redemption Code:</p><p id="redemptionCode" class="text-4xl font-extrabold text-indigo-800 my-2">MMT-0000-0000</p></div><button onclick="document.getElementById('redemptionCode').textContent = 'MMT-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000); showMessage('New token generated!');" class="w-full mt-4 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors transform hover:scale-[1.01]">Generate/Show Token</button>`;
+                    break;
+                case 11: // Traffic & Mobility (Dynamic)
+                    modalTitle.textContent = "Live Traffic & Parking";
+                    loadingIndicatorModal.classList.add('hidden');
+                    const parking = Math.floor(Math.random() * 100) + 50;
+                    const totalParking = 200;
+                    const trafficStatus = getTrafficStatus();
+                    modalBody.innerHTML = `<p class="text-lg font-semibold mb-3">Live Mobility Status</p><div class="space-y-3"><div class="p-3 ${trafficStatus.color} rounded-lg"><p class="font-bold text-gray-700">Approach Road Traffic:</p><p class="text-xl font-extrabold text-gray-800">${trafficStatus.text}</p></div><div class="p-3 bg-gray-100 rounded-lg"><p class="font-bold text-gray-700">Parking Lot 1:</p><p class="text-xl font-extrabold text-gray-800">${parking} / ${totalParking} spots available</p></div><p class="text-sm text-gray-500">Shuttle services running every 15 minutes to Parking Lot 2.</p></div><button onclick="window.open('https://www.google.com/maps/search/Parking+Near+Dwarkadhish+Temple', '_blank'); closeInfoModal();" class="w-full mt-4 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors transform hover:scale-[1.01]">Find Parking on Map</button>`;
+                    break;
+                case 13: // Live Aarti Broadcast (Action-Oriented)
+                    modalTitle.textContent = "Live Aarti Broadcast";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-lg font-semibold mb-4">Live Darshan Stream</p><div class="bg-black w-full aspect-video flex items-center justify-center rounded-lg mb-4"><p class="text-white text-center p-8">Simulated Live Stream Placeholder</p></div><p class="text-sm text-gray-600 text-center">Aarti Timings: Morning 7:30 AM, Evening 7:30 PM (IST).</p><button onclick="showMessage('Simulated video stream started.'); closeInfoModal();" class="w-full mt-4 bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors transform hover:scale-[1.01]">Watch Live Aarti Now</button>`;
+                    break;
+                case 14: // Sewa & Donations (Action-Oriented)
+                    modalTitle.textContent = "Sewa & Donations";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-lg font-semibold mb-4">Support the Temple</p><p class="text-gray-700 mb-4">Your contributions help maintain facilities, fund community services, and preserve the temple's heritage.</p><div class="space-y-2"><button onclick="showMessage('Navigating to secure donation portal for ₹101.'); closeInfoModal();" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors transform hover:scale-[1.01]">Donate ₹101 (Seva)</button><button onclick="showMessage('Navigating to secure donation portal for ₹501.'); closeInfoModal();" class="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors transform hover:scale-[1.01]">Donate ₹501 (Annadan)</button></div>`;
+                    break;
+                case 9: // History & Significance (AI Content)
+                    modalTitle.textContent = "History & Significance";
+                    const prompt_h = "Provide a concise summary of the history and significance of the Dwarkadhish Temple in Dwarka, Gujarat, India.";
+                    const systemInstruction_h = "Act as a knowledgeable tour guide. Provide a concise, single-paragraph summary of the key findings. Use engaging, descriptive language. Do not include external citation sources.";
+                    const { text: text_h } = await callGeminiAPI(prompt_h, systemInstruction_h);
+                    modalBody.innerHTML = `<p id="modalText" class="text-sm text-gray-700">${text_h}</p>`;
+                    loadingIndicatorModal.classList.add('hidden');
+                    break;
+                case 6: // Register a Complaint (AI Content)
+                    modalTitle.textContent = "Register a Complaint";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="mb-4 text-center">Please describe your complaint below. An AI Assistant will help categorize it for the temple staff.</p><textarea id="complaintInput" class="w-full h-32 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea><div id="complaintResult" class="mt-4 hidden p-4 bg-gray-100 rounded-lg text-sm text-gray-700 font-medium"></div><button id="processComplaintBtn" class="w-full mt-4 bg-green-600 text-white py-2 rounded-md font-semibold hover:bg-green-700 transform hover:scale-[1.01]">✨ Process Complaint</button>`;
+                    document.getElementById('processComplaintBtn').addEventListener('click', async () => {
+                        const complaintInput = document.getElementById('complaintInput').value;
+                        const resultDiv = document.getElementById('complaintResult');
+                        if (complaintInput.trim() === "") { showMessage("Please enter a complaint."); return; }
+                        loadingIndicatorModal.classList.remove('hidden');
+                        resultDiv.classList.add('hidden');
+                        const prompt_c = `Summarize the following complaint and suggest a category (e.g., "Lost and Found", "Medical", "General Maintenance"). Complaint: "${complaintInput}"`;
+                        const systemInstruction_c = "You are a helpful assistant for a temple. Process the complaint. Provide a clear, one-sentence summary and a single, most relevant category. Respond in the exact format: 'Summary: [Summary text]. Category: [Category].'";
+                        const { text: text_c } = await callGeminiAPI(prompt_c, systemInstruction_c);
+                        resultDiv.innerHTML = `<p>${text_c}</p><p class="mt-2 text-indigo-600 font-bold">Your report has been sent to the Command Center.</p>`;
+                        resultDiv.classList.remove('hidden');
+                        loadingIndicatorModal.classList.add('hidden');
+                    });
+                    break;
+                case 10: // 360 View (AI Content)
+                    modalTitle.textContent = "360° Temple View";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="mb-4 text-center">Click the button below to get an AI-generated descriptive text for a virtual tour of Dwarka Temple.</p><button id="generateDescriptionBtn" class="w-full mt-4 bg-purple-600 text-white py-2 rounded-md font-semibold hover:bg-purple-700 transform hover:scale-[1.01]">✨ Generate Description</button><div id="descriptionResult" class="mt-4 hidden p-4 bg-gray-100 rounded-lg text-sm text-gray-700 font-medium"></div>`;
+                    document.getElementById('generateDescriptionBtn').addEventListener('click', async () => {
+                        const resultDiv = document.getElementById('descriptionResult');
+                        loadingIndicatorModal.classList.remove('hidden');
+                        resultDiv.classList.add('hidden');
+                        const prompt_v = "Write a vivid and poetic, one-paragraph description of a 360-degree virtual tour of the main shrine and surrounding courtyards of the Dwarkadhish Temple.";
+                        const { text: text_v } = await callGeminiAPI(prompt_v);
+                        resultDiv.innerHTML = `<p>${text_v}</p>`;
+                        resultDiv.classList.remove('hidden');
+                        loadingIndicatorModal.classList.add('hidden');
+                    });
+                    break;
+                case 12: // My User ID (Static)
+                    modalTitle.textContent = "My User ID";
+                    loadingIndicatorModal.classList.add('hidden');
+                    modalBody.innerHTML = `<p class="text-center text-lg font-semibold">${modalData[cardId].text}</p>`;
+                    break;
+            }
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // --- CHATBOT FUNCTIONS ---
+
+        function toggleChatbot() {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.classList.toggle('open');
+        }
+
+        function appendMessage(sender, message) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', 'text-sm');
+
+            if (sender === 'user') {
+                messageDiv.classList.add('user-message');
+                messageDiv.textContent = message;
+            } else {
+                messageDiv.classList.add('ai-message');
+                // Allow simple markdown like **bold** and newlines
+                let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                formattedMessage = formattedMessage.replace(/\n/g, '<br>');
+                messageDiv.innerHTML = formattedMessage;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            // Auto-scroll to the latest message
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const chatInput = document.getElementById('chat-input');
+            const message = chatInput.value.trim();
+
+            if (message === "") return;
+
+            // 1. Display user message
+            appendMessage('user', message);
+            chatInput.value = '';
+            chatInput.disabled = true; // Disable input while waiting for AI
+
+            // 2. Simulate typing indicator
+            const chatMessages = document.getElementById('chat-messages');
+            const typingIndicator = document.createElement('div');
+            typingIndicator.classList.add('chat-message', 'ai-message', 'typing-indicator');
+            typingIndicator.innerHTML = '...';
+            chatMessages.appendChild(typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+
+            // 3. Get AI response using the mock API
+            const systemInstruction = "You are the Mandir Mitra AI Assistant, a friendly and helpful guide for pilgrims visiting the Dwarkadhish Temple. Keep responses concise, helpful, and devotional in tone. Use a polite Indian greeting/closing where appropriate. Your knowledge base is about the temple, darshan, timings, passes, and services.";
+            const { text: aiResponse } = await callGeminiAPI(message, systemInstruction);
+
+            // 4. Remove typing indicator and display AI response
+            chatMessages.removeChild(typingIndicator);
+            appendMessage('ai', aiResponse);
+            
+            chatInput.disabled = false;
+            chatInput.focus();
+        }
+
+        // --- Event Listeners and Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashcardContainers = document.querySelectorAll('.flashcard-container');
+            const submitBookingBtn = document.getElementById('submitBooking');
+            const backToCalendarBtn = document.getElementById('backToCalendar');
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            const chatInput = document.getElementById('chat-input');
+            
+            // Allow sending chat message with Enter key
+            if(chatInput) {
+                chatInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendChatMessage();
+                    }
+                });
+            }
+
+            // Booking flow listeners
+            prevMonthBtn.addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+                renderCalendar(currentMonth, currentYear);
+            });
+            nextMonthBtn.addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+                renderCalendar(currentMonth, currentYear);
+            });
+            backToCalendarBtn.addEventListener('click', showBookingCalendar);
+            submitBookingBtn.addEventListener('click', generatePass);
+            
+            // Start on the login page
+            showPage('page1');
+        });
+    </script>
+</body>
+</html>
